@@ -58,20 +58,29 @@ public class Edge {
 
     public Set<Edge> getNeighboursNeighbours() {
         Set<Edge> neighbours = new HashSet<>();
-        for (Edge edge : from.getEdges()) {
+        List<Edge> fromEdges = new ArrayList<>(from.getEdges());
+        fromEdges.remove(this);
+        for (Edge edge : fromEdges) {
             neighbours.addAll(edge.getNeighbours());
         }
-        for (Edge edge : to.getEdges()) {
+        List<Edge> toEdges = new ArrayList<>(to.getEdges());
+        toEdges.remove(this);
+        for (Edge edge : toEdges) {
             neighbours.addAll(edge.getNeighbours());
         }
         return neighbours;
     }
 
-    public Set<Edge> getNeighboursInDistanceOfTwo() {
+    public Set<Edge> getNeighboursWithinDistanceOfTwo() {
         Set<Edge> neighbours = new HashSet<>();
         neighbours.addAll(getNeighbours());
         neighbours.addAll(getNeighboursNeighbours());
         return neighbours;
+    }
+
+    @Override
+    public String toString() {
+        return id + " (" + from.getId() + " <-> " + to.getId() + ")";
     }
 
 }

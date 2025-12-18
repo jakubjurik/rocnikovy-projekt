@@ -19,12 +19,16 @@ public class Vertex {
         return edges;
     }
 
+    public List<Edge> getSortedEdges() {
+        List<Edge> sortedEdges = new ArrayList<>(edges);
+        sortedEdges.sort(Comparator.comparingInt(Edge::getId));
+        return sortedEdges;
+    }
+
     public void addEdge(Edge edge) {
-        /*
         if (edges.size() >= 3) {
             throw new IllegalArgumentException("Too many edges");
         }
-         */
         edges.add(edge);
     }
 
@@ -46,6 +50,10 @@ public class Vertex {
         }
 
         return neighbours;
+    }
+
+    public boolean isNeighbour(Vertex other) {
+        return this.getNeighbours().contains(other);
     }
 
 }
