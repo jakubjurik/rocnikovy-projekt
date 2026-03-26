@@ -104,6 +104,13 @@ public class Graph {
         }
     }
 
+    public List<Edge> getEdgesAndTruncate(Graph graph, Vertex vertex) {
+        List<Edge> vertexEdges = vertex.getSortedEdges();
+        graph.truncateVertex(vertex);
+        graph.truncate();
+        return vertexEdges;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -112,6 +119,7 @@ public class Graph {
         sb.append(vertices.size()).append("\n");
 
         for (Vertex v : getSortedVertices()) {
+            sb.append(v.getId()).append(": ");
             List<Vertex> neighbours = new ArrayList<>(v.getNeighbours());
             neighbours.sort(Comparator.comparing(Vertex::getId));
 

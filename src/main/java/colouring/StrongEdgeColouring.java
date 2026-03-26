@@ -1,6 +1,8 @@
 package colouring;
 
 import graph.*;
+import jdk.jshell.spi.ExecutionControl;
+
 import java.util.*;
 
 public class StrongEdgeColouring {
@@ -8,8 +10,10 @@ public class StrongEdgeColouring {
     private final Map<Edge, Integer> colouring = new HashMap<>();
     private final int maxColours = 6;
     private int colouringCount;
+    private final Set<Solution> solutions = new HashSet<>();
+    private final Set<Solution6> solutions6 = new HashSet<>();
 
-    private boolean canUseColour(Edge edge, int colour) {
+    private boolean canUseColour(Edge edge, int colour, Map<Edge, Integer> colouring) {
         for (Edge e : edge.getNeighboursWithinDistanceOfTwo()) {
             Integer c = colouring.get(e);
             if (c != null && c.equals(colour)) {
@@ -19,21 +23,21 @@ public class StrongEdgeColouring {
         return true;
     }
 
-    private int countAvailableColours(Edge e){
+    private int countAvailableColours(Edge e, Map<Edge, Integer> colouring) {
         int count = 0;
         for (int c = 0; c < maxColours; c++){
-            if (canUseColour(e,c)) count++;
+            if (canUseColour(e,c, colouring)) count++;
         }
         return count;
     }
 
-    private Edge selectNextEdge(List<Edge> edges) {
+    private Edge selectNextEdge(List<Edge> edges, Map<Edge, Integer> colouring) {
         Edge best = null;
         int minOptions = Integer.MAX_VALUE;
 
         for (Edge e : edges) {
             if (!colouring.containsKey(e)) {
-                int options = countAvailableColours(e);
+                int options = countAvailableColours(e, colouring);
                 if (options < minOptions){
                     minOptions = options;
                     best = e;
@@ -125,6 +129,165 @@ public class StrongEdgeColouring {
         return conflicts;
     }
 
+    private boolean edgeIsInConflict(Edge edge, Map<Edge, Integer> colouring) {
+        List<Edge> edges = new ArrayList<>(edge.getNeighboursWithinDistanceOfTwo());
+        for (Edge e : edges) {
+            if (colouring.get(e).equals(colouring.get(edge))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<Edge> getConflictEdges(Edge edge, Map<Edge, Integer> colouring) {
+        List<Edge> edges = new ArrayList<>(edge.getNeighboursWithinDistanceOfTwo());
+        List<Edge> conflictEdges = new ArrayList<>();
+        for (Edge e : edges) {
+            if (colouring.get(e).equals(colouring.get(edge))) {
+                conflictEdges.add(e);
+            }
+        }
+        return conflictEdges;
+    }
+
+    private int getMinConflictColour(Edge edge, Map<Edge, Integer> colouring) {
+        int optimal = colouring.get(edge);
+        List<Edge> edges = new ArrayList<>(edge.getNeighboursWithinDistanceOfTwo());
+        int minConflicts = Integer.MAX_VALUE;
+        for (int i = 0 ; i < maxColours ; i++) {
+            int currentConflicts = 0;
+            for (Edge e : edges) {
+                if (colouring.get(e) == i) {
+                    currentConflicts++;
+                }
+            }
+            if (currentConflicts < minConflicts) {
+                minConflicts = currentConflicts;
+                optimal = i;
+            }
+        }
+        return optimal;
+    }
+
+    private boolean resolveConflict(Edge edge) {
+        Set<Edge> visited = new HashSet<>();
+
+        while (edgeIsInConflict(edge, colouring)) {
+            if (visited.contains(edge)) {
+                return false;
+            }
+            visited.add(edge);
+
+            int newColour = getMinConflictColour(edge, colouring);
+            colouring.put(edge, newColour);
+            if (!edgeIsInConflict(edge, colouring)) {
+                return true;
+            }
+
+            List<Edge> conflicts = getConflictEdges(edge, colouring);
+            edge = conflicts.getFirst();
+        }
+
+        return true;
+    }
+
+    private Map<Edge, Integer> changeColour(Edge e1, Edge e2, Map<Edge, Integer> colouring) {
+        Map<Edge, Integer> copy = new HashMap<>(colouring);
+        int c1 = copy.get(e1);
+        int c2 = copy.get(e2);
+        copy.put(e1, c2);
+        copy.put(e2, c1);
+        return copy;
+    }
+
+    private List<Map<Edge, Integer>> recolourLocally(Edge e1, Edge e2, int conflictType, Map<Edge, Integer> colouring) {
+        List<Map<Edge, Integer>> results = new ArrayList<>();
+
+        for (Edge e3 : e2.getNeighbours()) {
+            if (colouring.get(e3).equals(colouring.get(e1))) continue;
+
+            if (conflictType == 1) {
+                if (e3.equals(e1)) continue;
+                if (e1.getNeighbours().contains(e3)) continue;
+            }
+
+            if (conflictType == 2) {
+                if (e1.getNeighboursWithinDistanceOfTwo().contains(e3)) continue;
+            }
+
+            results.add(changeColour(e2, e3, colouring));
+        }
+        return results;
+    }
+    /**
+     * */
+    private boolean spreadConflict(Edge e1, Map<Edge, Integer> colouring, Set<String> visitedStates) {
+        if (!edgeIsInConflict(e1, colouring)) {
+            this.colouring.clear();
+            this.colouring.putAll(colouring);
+            return true;
+        }
+
+        String colouringString = getColouringString(colouring);
+        if (visitedStates.contains(colouringString)) {
+            return false;
+        }
+
+        visitedStates.add(colouringString);
+
+        List<Edge> conflicts = getConflictEdges(e1, colouring);
+
+        for (Edge e2 : conflicts) {
+            int conflictType = getConflictType(e1, e2);
+            List<Map<Edge, Integer>> nextStates = recolourLocally(e1, e2, conflictType, colouring);
+
+            for (Map<Edge, Integer> nextState : nextStates) {
+                Map<Edge, Integer> newColouring = new HashMap<>(nextState);
+
+                newColouring.forEach((edge, integer) -> {
+                    if (newColouring.get(edge).equals(colouring.get(edge))) {
+                        newColouring.remove(edge, integer);
+                    }
+                });
+                newColouring.remove(e2, colouring.get(e2));
+                // ? newColouring.size() == 1
+                Edge e3 = newColouring.keySet().iterator().next();
+
+                if (spreadConflict(e3, nextState, visitedStates)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private int getConflictType(Edge e1, Edge e2) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    private String getColouringString(Map<Edge, Integer> colouring) {
+        List<Edge> sorted = new ArrayList<>(colouring.keySet());
+        sorted.sort(Comparator.comparingInt(Edge::getId));
+
+        StringBuilder sb = new StringBuilder();
+        for (Edge e : sorted) {
+            sb.append(colouring.get(e));
+        }
+        return sb.toString();
+    }
+
+    private Map<Edge, Integer> getColouringMap(String colouringString, List<Edge> edges) {
+        List<Edge> sorted = new ArrayList<>(edges);
+        sorted.sort(Comparator.comparingInt(Edge::getId));
+
+        Map<Edge,Integer> colouring = new HashMap<>();
+        for (int i = 0; i < colouringString.length(); i++) {
+            colouring.put(sorted.get(i), colouringString.charAt(i) - '0');
+        }
+        return colouring;
+    }
+
     private void printColouring(Map<Edge, Integer> colouring, int number) {
         List<Edge> sorted = new ArrayList<>(colouring.keySet());
         sorted.sort(Comparator.comparingInt(Edge::getId));
@@ -152,16 +315,343 @@ public class StrongEdgeColouring {
             return;
         }
 
-        Edge edge = selectNextEdge(edges);
+        Edge edge = selectNextEdge(edges, colouring);
         if (edge == null) return;
 
         for (int colour = 0; colour < maxColours; colour++) {
-            if (canUseColour(edge, colour)) {
+            if (canUseColour(edge, colour, colouring)) {
                 colouring.put(edge, colour);
                 backtrack(graph, edges);
                 colouring.remove(edge);
             }
         }
+    }
+
+    private boolean canFinish(List<Edge> edges, Map<Edge, Integer> colouring) {
+        if (colouring.size() == edges.size()) {
+            return true;
+        }
+
+        Edge edge = selectNextEdge(edges, colouring);
+        if (edge == null) return false;
+
+        for (int colour = 0; colour < maxColours; colour++) {
+            if (canUseColour(edge, colour, colouring)) {
+                colouring.put(edge, colour);
+                if (canFinish(edges, colouring)) {
+                    return true;
+                }
+                colouring.remove(edge);
+            }
+        }
+
+        return false;
+    }
+
+    private void colourEdge(Edge edge, int colour, List<Edge> originalEdges, Map<Edge, Integer> colouring, Set<Edge> visited) {
+        if (visited.contains(edge)) return;
+        visited.add(edge);
+
+        if (originalEdges.contains(edge)) return;
+
+        colouring.put(edge, colour);
+
+        for (Edge neighbour : edge.getNeighbours()) {
+            colourEdge(neighbour, colour, originalEdges, colouring, visited);
+        }
+    }
+
+    private Vertex getOpposite(Edge edge, Vertex vertex) {
+        if (edge.getFrom() == vertex) {
+            return edge.getTo();
+        }
+        if (edge.getTo() == vertex) {
+            return edge.getFrom();
+        }
+        throw new IllegalArgumentException("Non-incident vertex to edge");
+    }
+
+    public Palette truncAndGetPalette(Graph graph, int vertexId, int edge1, int edge2, int edge3) {
+        Vertex vertex = graph.getSortedVertices().get(vertexId);
+        List<Edge> originalEdges = graph.getEdgesAndTruncate(graph, vertex);
+        Edge e1 = originalEdges.get(edge1);
+        Edge e2 = originalEdges.get(edge2);
+        Edge e3 = originalEdges.get(edge3);
+        return search(graph, vertex, e1, e2, e3);
+    }
+
+    public Palette getPalette(Graph graph, int vertexId, List<Edge> originalEdges, int edge1, int edge2, int edge3) {
+        Vertex vertex = graph.getSortedVertices().get(vertexId);
+        Edge e1 = originalEdges.get(edge1);
+        Edge e2 = originalEdges.get(edge2);
+        Edge e3 = originalEdges.get(edge3);
+        return search(graph, vertex, e1, e2, e3);
+    }
+
+    public Palette getPalette(Graph graph, Vertex vertex, Edge e1, Edge e2, Edge e3) {
+        graph.truncateVertex(vertex);
+        graph.truncate();
+        System.out.println(graph);
+        return search(graph, vertex, e1, e2, e3);
+    }
+
+    public Palette6 getPalette6(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
+        Edge e1 = edgeA;
+        Edge e2 = edgeD;
+        Edge e3 = edgeG;
+
+        System.out.println("called getPalette6");
+        System.out.println(graph);
+        System.out.println(e1);
+        System.out.println(e2);
+        System.out.println(e3);
+        System.out.println();
+
+        Vertex v1 = getOpposite(e1, vertex);
+        Vertex v2 = getOpposite(e2, vertex);
+        Vertex v3 = getOpposite(e3, vertex);
+
+        graph.truncateVertex(vertex);
+        System.out.println("truncated vertex " + vertex.getId());
+        System.out.println(graph);
+        System.out.println(e1);
+        System.out.println(e2);
+        System.out.println(e3);
+        System.out.println();
+
+        graph.truncate();
+        System.out.println("truncated graph");
+        System.out.println(graph);
+        System.out.println(e1);
+        System.out.println(e2);
+        System.out.println(e3);
+        System.out.println();
+
+        return search6(graph, vertex, e1, e2, e3);
+    }
+
+    public Palette search(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
+        List<Edge> edges = new ArrayList<>(graph.getSortedEdges());
+        Map<Edge, Integer> baseColouring = new HashMap<>();
+        List<Edge> originalEdges = new ArrayList<>(List.of(edgeA, edgeD, edgeG));
+
+        Set<Edge> visited = new HashSet<>();
+        Edge startEdge = null;
+        for (Edge e : vertex.getSortedEdges()) {
+            if (!originalEdges.contains(e)) {
+                startEdge = e;
+                break;
+            }
+        }
+        colourEdge(startEdge, maxColours, originalEdges, baseColouring, visited);
+
+        List<Edge> colouredEdges = new ArrayList<>(baseColouring.keySet());
+        Set<Vertex> colouredVertices = new HashSet<>();
+        for (Edge e : colouredEdges) {
+            colouredVertices.add(e.getFrom());
+            colouredVertices.add(e.getTo());
+        }
+
+        Vertex vertexA;
+        if (colouredVertices.contains(edgeA.getFrom())) {
+            vertexA = edgeA.getTo();
+        } else if (colouredVertices.contains(edgeA.getTo())) {
+            vertexA = edgeA.getFrom();
+        } else {
+            throw new IllegalArgumentException("Wrong edgeA");
+        }
+        List<Edge> edgesA = new ArrayList<>(vertexA.getSortedEdges());
+        edgesA.remove(edgeA);
+        Edge edgeB = edgesA.get(0);
+        Edge edgeC = edgesA.get(1);
+
+        Vertex vertexD;
+        if (colouredVertices.contains(edgeD.getFrom())) {
+            vertexD = edgeD.getTo();
+        } else if (colouredVertices.contains(edgeD.getTo())) {
+            vertexD = edgeD.getFrom();
+        } else {
+            throw new IllegalArgumentException("Wrong edgeD");
+        }
+        List<Edge> edgesD = new ArrayList<>(vertexD.getSortedEdges());
+        edgesD.remove(edgeD);
+        Edge edgeE = edgesD.get(0);
+        Edge edgeF = edgesD.get(1);
+
+        Vertex vertexG;
+        if (colouredVertices.contains(edgeG.getFrom())) {
+            vertexG = edgeG.getTo();
+        } else if (colouredVertices.contains(edgeG.getTo())) {
+            vertexG = edgeG.getFrom();
+        } else {
+            throw new IllegalArgumentException("Wrong edgeG");
+        }
+        List<Edge> edgesG = new ArrayList<>(vertexG.getSortedEdges());
+        edgesG.remove(edgeG);
+        Edge edgeH = edgesG.get(0);
+        Edge edgeI = edgesG.get(1);
+
+        //printColouring(baseColouring, 0);
+        int count = 0;
+
+        for (int a = 0 ; a < maxColours; a++) {
+            for (int b = 0 ; b < maxColours; b++) {
+                if (b == a) continue;
+                for (int c = 0 ; c < maxColours; c++) {
+                    if (c == a || c == b) continue;
+                    for (int d = 0 ; d < maxColours; d++) {
+                        for (int e = 0 ; e < maxColours; e++) {
+                            if (e == d) continue;
+                            for (int f = 0 ; f < maxColours; f++) {
+                                if (f == d || f == e) continue;
+                                for (int g = 0 ; g < maxColours; g++) {
+                                    for (int h = 0 ; h < maxColours; h++) {
+                                        if (h == g) continue;
+                                        for (int i = 0; i < maxColours; i++) {
+                                            if (i == g || i == h) continue;
+                                            Map<Edge,Integer> testColouring = new HashMap<>(baseColouring);
+
+                                            testColouring.put(edgeA, a);
+                                            testColouring.put(edgeB, b);
+                                            testColouring.put(edgeC, c);
+                                            testColouring.put(edgeD, d);
+                                            testColouring.put(edgeE, e);
+                                            testColouring.put(edgeF, f);
+                                            testColouring.put(edgeG, g);
+                                            testColouring.put(edgeH, h);
+                                            testColouring.put(edgeI, i);
+
+                                            if (canFinish(edges, testColouring)) {
+                                                //count++;
+                                                //printColouring(testColouring, count);
+                                                solutions.add(new Solution(a, b, c, d, e, f, g, h, i));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return new Palette(solutions);
+    }
+
+    public Palette6 search6(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
+        List<Edge> edges = new ArrayList<>(graph.getSortedEdges());
+        Map<Edge, Integer> baseColouring = new HashMap<>();
+        List<Edge> originalEdges = new ArrayList<>(List.of(edgeA, edgeD, edgeG));
+
+        Set<Edge> visited = new HashSet<>();
+        Edge startEdge = null;
+        for (Edge e : vertex.getSortedEdges()) {
+            if (!originalEdges.contains(e)) {
+                startEdge = e;
+                break;
+            }
+        }
+        colourEdge(startEdge, maxColours, originalEdges, baseColouring, visited);
+
+        List<Edge> colouredEdges = new ArrayList<>(baseColouring.keySet());
+        Set<Vertex> colouredVertices = new HashSet<>();
+        for (Edge e : colouredEdges) {
+            colouredVertices.add(e.getFrom());
+            colouredVertices.add(e.getTo());
+        }
+
+        Vertex vertexA;
+        if (colouredVertices.contains(edgeA.getFrom())) {
+            vertexA = edgeA.getTo();
+        } else if (colouredVertices.contains(edgeA.getTo())) {
+            vertexA = edgeA.getFrom();
+        } else {
+            throw new IllegalArgumentException("Wrong edgeA");
+        }
+
+        List<Edge> edgesA = new ArrayList<>(vertexA.getSortedEdges());
+        System.out.println(edgeA);
+        System.out.println(edgesA.size());
+        for (Edge e : edgesA) {
+            System.out.println(e);
+        }
+        edgesA.remove(edgeA);
+        System.out.println(edgesA.size());
+        Edge edgeB = edgesA.get(0);
+        Edge edgeC = edgesA.get(1);
+
+        Vertex vertexB = getOpposite(edgeB, vertexA);
+        Vertex vertexC = getOpposite(edgeC, vertexA);
+
+        baseColouring.put(edgeA, 0);
+        baseColouring.put(edgeB, 1);
+        baseColouring.put(edgeC, 2);
+        baseColouring.put(graph.getEdge(vertexA, vertexB), 3);
+        baseColouring.put(graph.getEdge(vertexB, vertexC), 4);
+        baseColouring.put(graph.getEdge(vertexA, vertexC), 5);
+
+        Vertex vertexD;
+        if (colouredVertices.contains(edgeD.getFrom())) {
+            vertexD = edgeD.getTo();
+        } else if (colouredVertices.contains(edgeD.getTo())) {
+            vertexD = edgeD.getFrom();
+        } else {
+            throw new IllegalArgumentException("Wrong edgeD");
+        }
+        List<Edge> edgesD = new ArrayList<>(vertexD.getSortedEdges());
+        edgesD.remove(edgeD);
+        Edge edgeE = edgesD.get(0);
+        Edge edgeF = edgesD.get(1);
+
+        Vertex vertexG;
+        if (colouredVertices.contains(edgeG.getFrom())) {
+            vertexG = edgeG.getTo();
+        } else if (colouredVertices.contains(edgeG.getTo())) {
+            vertexG = edgeG.getFrom();
+        } else {
+            throw new IllegalArgumentException("Wrong edgeG");
+        }
+        List<Edge> edgesG = new ArrayList<>(vertexG.getSortedEdges());
+        edgesG.remove(edgeG);
+        Edge edgeH = edgesG.get(0);
+        Edge edgeI = edgesG.get(1);
+
+        //printColouring(baseColouring, 0);
+        int count = 0;
+
+        for (int d = 0 ; d < maxColours; d++) {
+            for (int e = 0 ; e < maxColours; e++) {
+                if (e == d) continue;
+                for (int f = 0 ; f < maxColours; f++) {
+                    if (f == d || f == e) continue;
+                    for (int g = 0 ; g < maxColours; g++) {
+                        for (int h = 0 ; h < maxColours; h++) {
+                            if (h == g) continue;
+                            for (int i = 0; i < maxColours; i++) {
+                                if (i == g || i == h) continue;
+                                Map<Edge,Integer> testColouring = new HashMap<>(baseColouring);
+
+                                testColouring.put(edgeD, d);
+                                testColouring.put(edgeE, e);
+                                testColouring.put(edgeF, f);
+                                testColouring.put(edgeG, g);
+                                testColouring.put(edgeH, h);
+                                testColouring.put(edgeI, i);
+
+                                if (canFinish(edges, testColouring)) {
+                                    //count++;
+                                    //printColouring(testColouring, count);
+                                    solutions6.add(new Solution6(d, e, f, g, h, i));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return new Palette6(solutions6);
     }
 
     public void colour(Graph graph) {
