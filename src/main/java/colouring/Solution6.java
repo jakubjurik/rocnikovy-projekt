@@ -12,11 +12,21 @@ public class Solution6 {
 
     public Solution6(int cd, int ce, int cf, int cg, int ch, int ci) {
         this.cd = cd;
-        this.ce = ce;
-        this.cf = cf;
+        if (ce <= cf) {
+            this.ce = ce;
+            this.cf = cf;
+        } else {
+            this.ce = cf;
+            this.cf = ce;
+        }
         this.cg = cg;
-        this.ch = ch;
-        this.ci = ci;
+        if (ch <= ci) {
+            this.ch = ch;
+            this.ci = ci;
+        } else {
+            this.ch = ci;
+            this.ci = ch;
+        }
     }
 
     public List<Integer> getColours() {
@@ -25,7 +35,6 @@ public class Solution6 {
 
     @Override
     public int hashCode() {
-        //return cd + ce + cf + cg + ch + ci;
         return Objects.hash(cd, ce, cf, cg, ch, ci);
     }
 
@@ -40,6 +49,14 @@ public class Solution6 {
                 cg == other.cg &&
                 ch == other.ch &&
                 ci == other.ci;
+
+        /*
+        return (cd == other.cd && cg == other.cg)
+                && ((ce == other.ce && cf == other.cf) || (ce == other.cf && cf == other.ce))
+                && ((ch == other.ch && ci == other.ci) || (ch == other.ci && ci == other.ch));
+
+         */
+
     }
 
     @Override

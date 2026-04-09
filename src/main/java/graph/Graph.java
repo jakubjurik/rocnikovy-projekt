@@ -19,6 +19,26 @@ public class Graph {
         this.edges = edges;
     }
 
+    public Graph getCopy() {
+        Graph copy = new Graph(this.id);
+        Map<Vertex, Vertex> vertexMap = new HashMap<>();
+
+        for (Vertex v : this.vertices) {
+            Vertex newV = new Vertex(v.getId());
+            copy.addVertex(newV);
+            vertexMap.put(v, newV);
+        }
+
+        for (Edge e : this.edges) {
+            Vertex newFrom = vertexMap.get(e.getFrom());
+            Vertex newTo = vertexMap.get(e.getTo());
+            Edge newEdge = new Edge(e.getId(), newFrom, newTo);
+            copy.addEdge(newEdge);
+        }
+
+        return copy;
+    }
+
     public void addVertex(Vertex vertex) {
         vertices.add(vertex);
     }
@@ -31,17 +51,14 @@ public class Graph {
         if (!vertices.contains(edge.getFrom()) || !vertices.contains(edge.getTo())) {
             throw new IllegalArgumentException("Incident vertex does not exist");
         }
-
         edge.getFrom().addEdge(edge);
         edge.getTo().addEdge(edge);
-
         edges.add(edge);
     }
 
     public void removeEdge(Edge edge) {
         edge.getFrom().removeEdge(edge);
         edge.getTo().removeEdge(edge);
-
         edges.remove(edge);
     }
 
@@ -99,7 +116,7 @@ public class Graph {
     }
 
     public void truncate() {
-        for (Vertex v : new ArrayList<>(getVertices())) {
+        for (Vertex v : new ArrayList<>(getSortedVertices())) {
             truncateVertex(v);
         }
     }

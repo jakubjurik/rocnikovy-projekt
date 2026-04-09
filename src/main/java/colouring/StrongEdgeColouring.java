@@ -11,7 +11,7 @@ public class StrongEdgeColouring {
     private final int maxColours = 6;
     private int colouringCount;
     private final Set<Solution> solutions = new HashSet<>();
-    private final Set<Solution6> solutions6 = new HashSet<>();
+    //private final Set<Solution6> solutions6 = new HashSet<>();
 
     private boolean canUseColour(Edge edge, int colour, Map<Edge, Integer> colouring) {
         for (Edge e : edge.getNeighboursWithinDistanceOfTwo()) {
@@ -391,43 +391,15 @@ public class StrongEdgeColouring {
     public Palette getPalette(Graph graph, Vertex vertex, Edge e1, Edge e2, Edge e3) {
         graph.truncateVertex(vertex);
         graph.truncate();
-        System.out.println(graph);
+        //System.out.println(graph);
         return search(graph, vertex, e1, e2, e3);
     }
 
     public Palette6 getPalette6(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
-        Edge e1 = edgeA;
-        Edge e2 = edgeD;
-        Edge e3 = edgeG;
-
-        System.out.println("called getPalette6");
-        System.out.println(graph);
-        System.out.println(e1);
-        System.out.println(e2);
-        System.out.println(e3);
-        System.out.println();
-
-        Vertex v1 = getOpposite(e1, vertex);
-        Vertex v2 = getOpposite(e2, vertex);
-        Vertex v3 = getOpposite(e3, vertex);
-
+        Graph originalGraph = graph.getCopy();
         graph.truncateVertex(vertex);
-        System.out.println("truncated vertex " + vertex.getId());
-        System.out.println(graph);
-        System.out.println(e1);
-        System.out.println(e2);
-        System.out.println(e3);
-        System.out.println();
-
         graph.truncate();
-        System.out.println("truncated graph");
-        System.out.println(graph);
-        System.out.println(e1);
-        System.out.println(e2);
-        System.out.println(e3);
-        System.out.println();
-
-        return search6(graph, vertex, e1, e2, e3);
+        return search6(graph, vertex, edgeA, edgeD, edgeG, originalGraph);
     }
 
     public Palette search(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
@@ -539,10 +511,11 @@ public class StrongEdgeColouring {
         return new Palette(solutions);
     }
 
-    public Palette6 search6(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
+    public Palette6 search6(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG, Graph originalGraph) {
         List<Edge> edges = new ArrayList<>(graph.getSortedEdges());
         Map<Edge, Integer> baseColouring = new HashMap<>();
         List<Edge> originalEdges = new ArrayList<>(List.of(edgeA, edgeD, edgeG));
+        Set<Solution6> solutions = new HashSet<>();
 
         Set<Edge> visited = new HashSet<>();
         Edge startEdge = null;
@@ -571,25 +544,13 @@ public class StrongEdgeColouring {
         }
 
         List<Edge> edgesA = new ArrayList<>(vertexA.getSortedEdges());
-        System.out.println(edgeA);
-        System.out.println(edgesA.size());
-        for (Edge e : edgesA) {
-            System.out.println(e);
-        }
         edgesA.remove(edgeA);
-        System.out.println(edgesA.size());
         Edge edgeB = edgesA.get(0);
         Edge edgeC = edgesA.get(1);
-
-        Vertex vertexB = getOpposite(edgeB, vertexA);
-        Vertex vertexC = getOpposite(edgeC, vertexA);
 
         baseColouring.put(edgeA, 0);
         baseColouring.put(edgeB, 1);
         baseColouring.put(edgeC, 2);
-        baseColouring.put(graph.getEdge(vertexA, vertexB), 3);
-        baseColouring.put(graph.getEdge(vertexB, vertexC), 4);
-        baseColouring.put(graph.getEdge(vertexA, vertexC), 5);
 
         Vertex vertexD;
         if (colouredVertices.contains(edgeD.getFrom())) {
@@ -642,7 +603,7 @@ public class StrongEdgeColouring {
                                 if (canFinish(edges, testColouring)) {
                                     //count++;
                                     //printColouring(testColouring, count);
-                                    solutions6.add(new Solution6(d, e, f, g, h, i));
+                                    solutions.add(new Solution6(d, e, f, g, h, i));
                                 }
                             }
                         }
@@ -651,7 +612,7 @@ public class StrongEdgeColouring {
             }
         }
 
-        return new Palette6(solutions6);
+        return new Palette6(solutions, originalGraph, vertex, edgeA, edgeD, edgeG);
     }
 
     public void colour(Graph graph) {

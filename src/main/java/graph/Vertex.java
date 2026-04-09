@@ -56,4 +56,9 @@ public class Vertex {
         return this.getNeighbours().contains(other);
     }
 
+    @Override
+    public String toString() {
+        return "Vertex " + id;
+    }
+
 }
