@@ -1,7 +1,6 @@
 package colouring;
 
 import graph.*;
-import jdk.jshell.spi.ExecutionControl;
 
 import java.util.*;
 
@@ -11,7 +10,6 @@ public class StrongEdgeColouring {
     private final int maxColours = 6;
     private int colouringCount;
     private final Set<Solution> solutions = new HashSet<>();
-    //private final Set<Solution6> solutions6 = new HashSet<>();
 
     private boolean canUseColour(Edge edge, int colour, Map<Edge, Integer> colouring) {
         for (Edge e : edge.getNeighboursWithinDistanceOfTwo()) {
@@ -219,8 +217,7 @@ public class StrongEdgeColouring {
         }
         return results;
     }
-    /**
-     * */
+
     private boolean spreadConflict(Edge e1, Map<Edge, Integer> colouring, Set<String> visitedStates) {
         if (!edgeIsInConflict(e1, colouring)) {
             this.colouring.clear();
@@ -327,6 +324,78 @@ public class StrongEdgeColouring {
         }
     }
 
+    public void colour(Graph graph) {
+        List<Edge> edges = new ArrayList<>(graph.getSortedEdges());
+        List<Vertex> vertices = new ArrayList<>(graph.getSortedVertices());
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Started with triangle of edges:\n");
+
+        Vertex v0 = vertices.getFirst();
+        List<Vertex> v0Neighbours = new ArrayList<>(v0.getNeighbours());
+        v0Neighbours.sort(Comparator.comparingInt(Vertex::getId));
+
+        Vertex a = v0Neighbours.get(0);
+        Vertex b = v0Neighbours.get(1);
+        Vertex c = v0Neighbours.get(2);
+
+        Vertex v1, v2, v3;
+
+        if (a.isNeighbour(b)) {
+            v2 = a;
+            v3 = b;
+            v1 = c;
+        } else if (a.isNeighbour(c)) {
+            v2 = a;
+            v3 = c;
+            v1 = b;
+        } else {
+            v2 = b;
+            v3 = c;
+            v1 = a;
+        }
+
+        Edge e0 = graph.getEdge(v0, v1);
+        colouring.put(e0, 0);
+        sb.append(e0).append(" : colour 0\n");
+
+        Edge e1 = graph.getEdge(v0, v2);
+        colouring.put(e1, 1);
+        sb.append(e1).append(" : colour 1\n");
+
+        Edge e2 = graph.getEdge(v0, v3);
+        colouring.put(e2, 2);
+        sb.append(e2).append(" : colour 2\n");
+
+        Edge e3 = graph.getEdge(v2, v3);
+        colouring.put(e3, 3);
+        sb.append(e3).append(" : colour 3\n");
+
+        List<Vertex> v2Neighbours = new ArrayList<>(v2.getNeighbours());
+        v2Neighbours.remove(v0);
+        v2Neighbours.remove(v3);
+
+        Vertex v4 = v2Neighbours.getFirst();
+        Edge e4 = graph.getEdge(v2, v4);
+        colouring.put(e4, 4);
+        sb.append(e4).append(" : colour 4\n");
+
+        List<Vertex> v3Neighbours = new ArrayList<>(v3.getNeighbours());
+        v3Neighbours.remove(v0);
+        v3Neighbours.remove(v2);
+
+        Vertex v5 = v3Neighbours.getFirst();
+        Edge e5 = graph.getEdge(v3, v5);
+        colouring.put(e5, 5);
+        sb.append(e5).append(" : colour 5\n");
+
+        System.out.println(sb);
+
+        colouringCount = 0;
+        backtrack(graph, edges);
+        System.out.println("Number of colourings: " + colouringCount);
+    }
+
     private boolean canFinish(List<Edge> edges, Map<Edge, Integer> colouring) {
         if (colouring.size() == edges.size()) {
             return true;
@@ -393,13 +462,6 @@ public class StrongEdgeColouring {
         graph.truncate();
         //System.out.println(graph);
         return search(graph, vertex, e1, e2, e3);
-    }
-
-    public Palette6 getPalette6(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
-        Graph originalGraph = graph.getCopy();
-        graph.truncateVertex(vertex);
-        graph.truncate();
-        return search6(graph, vertex, edgeA, edgeD, edgeG, originalGraph);
     }
 
     public Palette search(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
@@ -511,6 +573,13 @@ public class StrongEdgeColouring {
         return new Palette(solutions);
     }
 
+    public Palette6 getPalette6(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
+        Graph originalGraph = graph.getCopy();
+        graph.truncateVertex(vertex);
+        graph.truncate();
+        return search6(graph, vertex, edgeA, edgeD, edgeG, originalGraph);
+    }
+
     public Palette6 search6(Graph graph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG, Graph originalGraph) {
         List<Edge> edges = new ArrayList<>(graph.getSortedEdges());
         Map<Edge, Integer> baseColouring = new HashMap<>();
@@ -578,7 +647,6 @@ public class StrongEdgeColouring {
         Edge edgeH = edgesG.get(0);
         Edge edgeI = edgesG.get(1);
 
-        //printColouring(baseColouring, 0);
         int count = 0;
 
         for (int d = 0 ; d < maxColours; d++) {
@@ -613,78 +681,6 @@ public class StrongEdgeColouring {
         }
 
         return new Palette6(solutions, originalGraph, vertex, edgeA, edgeD, edgeG);
-    }
-
-    public void colour(Graph graph) {
-        List<Edge> edges = new ArrayList<>(graph.getSortedEdges());
-        List<Vertex> vertices = new ArrayList<>(graph.getSortedVertices());
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("Started with triangle of edges:\n");
-
-        Vertex v0 = vertices.getFirst();
-        List<Vertex> v0Neighbours = new ArrayList<>(v0.getNeighbours());
-        v0Neighbours.sort(Comparator.comparingInt(Vertex::getId));
-
-        Vertex a = v0Neighbours.get(0);
-        Vertex b = v0Neighbours.get(1);
-        Vertex c = v0Neighbours.get(2);
-
-        Vertex v1, v2, v3;
-
-        if (a.isNeighbour(b)) {
-            v2 = a;
-            v3 = b;
-            v1 = c;
-        } else if (a.isNeighbour(c)) {
-            v2 = a;
-            v3 = c;
-            v1 = b;
-        } else {
-            v2 = b;
-            v3 = c;
-            v1 = a;
-        }
-
-        Edge e0 = graph.getEdge(v0, v1);
-        colouring.put(e0, 0);
-        sb.append(e0).append(" : colour 0\n");
-
-        Edge e1 = graph.getEdge(v0, v2);
-        colouring.put(e1, 1);
-        sb.append(e1).append(" : colour 1\n");
-
-        Edge e2 = graph.getEdge(v0, v3);
-        colouring.put(e2, 2);
-        sb.append(e2).append(" : colour 2\n");
-
-        Edge e3 = graph.getEdge(v2, v3);
-        colouring.put(e3, 3);
-        sb.append(e3).append(" : colour 3\n");
-
-        List<Vertex> v2Neighbours = new ArrayList<>(v2.getNeighbours());
-        v2Neighbours.remove(v0);
-        v2Neighbours.remove(v3);
-
-        Vertex v4 = v2Neighbours.getFirst();
-        Edge e4 = graph.getEdge(v2, v4);
-        colouring.put(e4, 4);
-        sb.append(e4).append(" : colour 4\n");
-
-        List<Vertex> v3Neighbours = new ArrayList<>(v3.getNeighbours());
-        v3Neighbours.remove(v0);
-        v3Neighbours.remove(v2);
-
-        Vertex v5 = v3Neighbours.getFirst();
-        Edge e5 = graph.getEdge(v3, v5);
-        colouring.put(e5, 5);
-        sb.append(e5).append(" : colour 5\n");
-
-        System.out.println(sb);
-
-        colouringCount = 0;
-        backtrack(graph, edges);
-        System.out.println("Number of colourings: " + colouringCount);
     }
 
 }

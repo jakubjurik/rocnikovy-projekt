@@ -39,6 +39,172 @@ public class Graph {
         return copy;
     }
 
+    public static class Code {
+        public List<Vertex> sequence;
+        public String code;
+
+        public Code(List<Vertex> sequence, String code) {
+            this.sequence = sequence;
+            this.code = code;
+        }
+    }
+
+    public Map<Integer, String> getVertexCodes() {
+        List<Code> allPossibleCodes = getCodes();
+        Map<Integer, String> codes = new HashMap<>();
+
+        for (Code c : allPossibleCodes) {
+            int v = c.sequence.getFirst().getId();
+            String string = c.code;
+
+            if (!codes.containsKey(v)) {
+                codes.put(v, string);
+            } else {
+                if (string.compareTo(codes.get(v)) < 0) {
+                    codes.replace(v, string);
+                }
+            }
+        }
+        return codes;
+    }
+
+    public String getOrientedEdgeCode(int uId, int vId) {
+        List<Code> allCodes = getCodes();
+        String minCode = null;
+
+        for (Code c : allCodes) {
+            if (c.sequence.get(0).getId() == uId && c.sequence.get(1).getId() == vId) {
+                String current = c.code;
+                if (minCode == null || current.compareTo(minCode) < 0) {
+                    minCode = current;
+                }
+            }
+        }
+        return minCode;
+    }
+
+    public String getUnorientedEdgeCode(int uId, int vId) {
+        String codeUV = getOrientedEdgeCode(uId, vId);
+        String codeVU = getOrientedEdgeCode(vId, uId);
+
+        return (codeUV.compareTo(codeVU) < 0) ? codeUV : codeVU;
+    }
+
+    public List<Code> getCodes() {
+        List<Code> result = new ArrayList<>();
+        List<List<Vertex>> sequences = new ArrayList<>();
+
+        for (Vertex v : getSortedVertices()) {
+            List<Vertex> sequence = new ArrayList<>();
+            Set<Vertex> visited = new HashSet<>();
+
+            sequence.add(v);
+            visited.add(v);
+
+            bfs(sequence, visited, 0, sequences);
+        }
+
+        for (List<Vertex> seq : sequences) {
+            String codeStr = generateCodeString(seq);
+            result.add(new Code(seq, codeStr));
+        }
+
+        return result;
+    }
+
+    private String generateCodeString(List<Vertex> sequence) {
+        Map<Vertex, Character> labels = new HashMap<>();
+        char nextLabel = 'a';
+        StringBuilder sb = new StringBuilder();
+
+        Vertex root = sequence.getFirst();
+        labels.put(root, nextLabel++);
+
+        Map<Vertex, Integer> sequenceIndexMap = new HashMap<>();
+        for (int i = 0; i < sequence.size(); i++) {
+            sequenceIndexMap.put(sequence.get(i), i);
+        }
+
+        for (int i = 0; i < sequence.size(); i++) {
+            Vertex current = sequence.get(i);
+
+            List<Vertex> neighbours = new ArrayList<>(current.getNeighbours());
+
+            neighbours.sort(Comparator.comparingInt(sequenceIndexMap::get));
+
+            if (i == 0) {
+                for (Vertex neighbour : neighbours) {
+                    if (!labels.containsKey(neighbour)) {
+                        labels.put(neighbour, nextLabel++);
+                    }
+                }
+            } else {
+                for (Vertex neighbour : neighbours) {
+                    if (labels.containsKey(neighbour)) {
+                        sb.append(labels.get(neighbour));
+                    } else {
+                        sb.append("0");
+                        labels.put(neighbour, nextLabel++);
+                    }
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private void bfs(List<Vertex> sequence, Set<Vertex> visited, int index, List<List<Vertex>> result) {
+        if (index >= sequence.size()) {
+            result.add(new ArrayList<>(sequence));
+            return;
+        }
+
+        Vertex current = sequence.get(index);
+        List<Vertex> neighbours = new ArrayList<>();
+
+        for (Vertex v : current.getNeighbours()) {
+            if (!visited.contains(v)) {
+                neighbours.add(v);
+            }
+        }
+        neighbours.sort(Comparator.comparing(Vertex::getId));
+
+        backtrackNeighbours(neighbours, 0, sequence, index, visited, result);
+    }
+
+    private void backtrackNeighbours(
+            List<Vertex> neighbours,
+            int n,
+            List<Vertex> sequence,
+            int index,
+            Set<Vertex> visited,
+            List<List<Vertex>> result) {
+
+        if (n == neighbours.size()) {
+            int rollback = sequence.size();
+
+            for (Vertex v : neighbours) {
+                sequence.add(v);
+                visited.add(v);
+            }
+
+            bfs(sequence, visited, index + 1, result);
+
+            for (int i = sequence.size() - 1; i >= rollback; i--) {
+                visited.remove(sequence.get(i));
+                sequence.remove(i);
+            }
+
+            return;
+        }
+
+        for (int i = n; i < neighbours.size(); i++) {
+            Collections.swap(neighbours, n, i);
+            backtrackNeighbours(neighbours, n + 1, sequence, index, visited, result);
+            Collections.swap(neighbours, n, i);
+        }
+    }
+
     public void addVertex(Vertex vertex) {
         vertices.add(vertex);
     }

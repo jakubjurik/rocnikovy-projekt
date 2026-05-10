@@ -1,14 +1,17 @@
 import colouring.*;
 import graph.Edge;
 import graph.Graph;
+import graph.Graph.Code;
 import graph.Vertex;
 import input.GraphLoader;
 import colouring.StrongEdgeColouring;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
+
+import static org.junit.Assert.*;
 
 public class DemoTest {
 
@@ -423,6 +426,93 @@ public class DemoTest {
 
             System.out.println("graph copy is independent of original after truncate\n");
 
+        }
+    }
+
+    @Test
+    public void getCodeTest() throws FileNotFoundException {
+
+        String filePath = "src/main/resources/genreg-modified/testgraphs.asc";
+
+        List<Graph> graphs = GraphLoader.loadGraphsFromFile(filePath);
+
+        for (Graph graph : graphs) {
+
+            //if (graph.getId() != 2) continue;
+
+            System.out.println(graph);
+
+            List<Code> codes = graph.getCodes();
+
+            StringBuilder sb = new StringBuilder();
+
+            for (Code c : codes) {
+                for (Vertex v : c.sequence) {
+                    sb.append(v.getId());
+                }
+
+                sb.append("\n");
+                sb.append(c.code);
+                sb.append("\n\n");
+            }
+
+            System.out.println(sb);
+        }
+    }
+
+    @Test
+    public void codeTest() throws FileNotFoundException {
+
+        String filePath = "src/main/resources/genreg-modified/testgraphs.asc";
+
+        List<Graph> graphs = GraphLoader.loadGraphsFromFile(filePath);
+
+        for (Graph graph : graphs) {
+
+            if (graph.getId() != 2) continue;
+
+            System.out.println(graph);
+
+            Map<Integer, String> vertexCodes = graph.getVertexCodes();
+
+            assertEquals(vertexCodes.get(0), vertexCodes.get(1));
+            assertEquals(vertexCodes.get(0), vertexCodes.get(2));
+            assertEquals(vertexCodes.get(0), vertexCodes.get(3));
+            assertEquals(vertexCodes.get(0), vertexCodes.get(4));
+            assertEquals(vertexCodes.get(0), vertexCodes.get(5));
+
+            String e34 = graph.getUnorientedEdgeCode(3, 4);
+            String e35 = graph.getUnorientedEdgeCode(3, 5);
+            String e45 = graph.getUnorientedEdgeCode(4, 5);
+            String e02 = graph.getUnorientedEdgeCode(0, 2);
+            String e01 = graph.getUnorientedEdgeCode(0, 1);
+            String e12 = graph.getUnorientedEdgeCode(1, 2);
+
+            assertEquals(e34, e35);
+            assertEquals(e34, e45);
+            assertEquals(e34, e02);
+            assertEquals(e34, e01);
+            assertEquals(e34, e12);
+
+            String e04 = graph.getUnorientedEdgeCode(0, 4);
+            String e23 = graph.getUnorientedEdgeCode(2, 3);
+            String e15 = graph.getUnorientedEdgeCode(1, 5);
+
+            assertEquals(e04, e23);
+            assertEquals(e04, e15);
+
+            assertNotEquals(e23, e45);
+            assertNotEquals(e12, e23);
+            assertNotEquals(e02, e04);
+            assertNotEquals(e15, e34);
+            assertNotEquals(e01, e15);
+
+            String e10 = graph.getUnorientedEdgeCode(1, 0);
+            assertEquals(e01, e10);
+
+            String oriented01 = graph.getOrientedEdgeCode(0, 1);
+            String oriented15 = graph.getOrientedEdgeCode(1, 5);
+            assertNotEquals(oriented01, oriented15);
         }
     }
 }

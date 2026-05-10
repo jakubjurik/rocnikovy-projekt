@@ -12,8 +12,6 @@ public class Palette6 {
     Edge edgeD;
     Edge edgeG;
 
-    public Palette6() {}
-
     public Palette6(Set<Solution6> elements, Graph originalGraph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
         this.elements.addAll(elements);
         this.originalGraph = originalGraph;

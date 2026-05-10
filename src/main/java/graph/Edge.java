@@ -14,8 +14,6 @@ public class Edge {
         this.id = id;
         this.from = from;
         this.to = to;
-        //from.addEdge(this);
-        //to.addEdge(this);
     }
 
     public void setFrom(Vertex from) {

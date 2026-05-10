@@ -49,14 +49,6 @@ public class Solution6 {
                 cg == other.cg &&
                 ch == other.ch &&
                 ci == other.ci;
-
-        /*
-        return (cd == other.cd && cg == other.cg)
-                && ((ce == other.ce && cf == other.cf) || (ce == other.cf && cf == other.ce))
-                && ((ch == other.ch && ci == other.ci) || (ch == other.ci && ci == other.ch));
-
-         */
-
     }
 
     @Override
