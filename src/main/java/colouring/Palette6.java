@@ -5,7 +5,7 @@ import graph.*;
 
 public class Palette6 {
 
-    private final Set<Solution6> elements = new HashSet<>();
+    Set<Solution6> elements;
     Graph originalGraph;
     Vertex vertex;
     Edge edgeA;
@@ -13,7 +13,7 @@ public class Palette6 {
     Edge edgeG;
 
     public Palette6(Set<Solution6> elements, Graph originalGraph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
-        this.elements.addAll(elements);
+        this.elements = elements;
         this.originalGraph = originalGraph;
         this.vertex = vertex;
         this.edgeA = edgeA;
@@ -59,14 +59,18 @@ public class Palette6 {
 
     @Override
     public String toString() {
-        return "Palette for graph\n" + originalGraph +
-                "with " + vertex + "\n" +
-                "where\n" + "edgeA: " + edgeA + "\n" + "edgeD: " + edgeD + "\n" + "edgeG: " + edgeG + "\n";
+        return "Palette for graph\n" + originalGraph + "where\n" +
+                "Vertex: " + vertex.getId() +
+                " Edge A: " + edgeA +
+                " Edge D: " + edgeD +
+                " Edge G: " + edgeG + "\n";
     }
 
     public String toStringModified(int x) {
-        return "Palette " + x + " for graph\n" + originalGraph +
-                "with " + vertex + "\n" +
-                "where\n" + "edgeA: " + edgeA + "\n" + "edgeD: " + edgeD + "\n" + "edgeG: " + edgeG + "\n";
+        return "Palette" + x + " for graph\n" + originalGraph + "where\n" +
+                "Vertex: " + vertex.getId() +
+                " Edge A: " + edgeA +
+                " Edge D: " + edgeD +
+                " Edge G: " + edgeG + "\n";
     }
 }

@@ -295,6 +295,19 @@ public class Graph {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Graph graph)) return false;
+
+        return vertices.equals(graph.vertices) && edges.equals(graph.edges);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(vertices, edges);
+    }
+
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
 

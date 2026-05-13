@@ -79,6 +79,18 @@ public class Edge {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Edge edge)) return false;
+        return id == edge.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
     public String toString() {
         return id + " (" + from.getId() + " <-> " + to.getId() + ")";
     }

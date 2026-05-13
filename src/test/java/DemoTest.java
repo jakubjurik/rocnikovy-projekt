@@ -5,7 +5,6 @@ import graph.Graph.Code;
 import graph.Vertex;
 import input.GraphLoader;
 import colouring.StrongEdgeColouring;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.*;
@@ -514,5 +513,166 @@ public class DemoTest {
             String oriented15 = graph.getOrientedEdgeCode(1, 5);
             assertNotEquals(oriented01, oriented15);
         }
+    }
+
+    @Test
+    public void comparePalettesOptimisedTest() throws FileNotFoundException {
+        //StringBuilder sb = new StringBuilder();
+        List<Graph> graphs = new ArrayList<>();
+        List<Palette6> palettes = new ArrayList<>();
+        int paletteCount = 0;
+
+        for (int i = 4; i <= 6; i += 2) {
+            String fileName = "0" + i + "_3_3.asc";
+            String filePath = "src/main/resources/genreg-modified/" + fileName;
+
+            File file = new File(filePath);
+            if (!file.exists()) {
+                throw new FileNotFoundException();
+            }
+
+            graphs.addAll(GraphLoader.loadGraphsFromFile(filePath));
+        }
+
+        for (Graph originalGraph : graphs) {
+            StringBuilder sb = new StringBuilder();
+            //System.out.println(originalGraph);
+            sb.append("\n").append(originalGraph).append("\n");
+
+            List<Vertex> vertices = originalGraph.getSortedVertices();
+            Map<Integer, String> vertexCodes = originalGraph.getVertexCodes();
+
+            List<Vertex> orbitVertices = new ArrayList<>();
+            Set<String> uniqueVertexCodes = new HashSet<>();
+
+            for (Vertex v : vertices) {
+                String code = vertexCodes.get(v.getId());
+                if (uniqueVertexCodes.add(code)) {
+                    orbitVertices.add(v);
+                }
+            }
+
+            assertFalse(orbitVertices.isEmpty());
+            sb.append("Number of different vertex orbits: ").append(orbitVertices.size()).append("\n\n");
+
+            Map<Integer, String> edgeCodes = new HashMap<>();
+            for (Edge e : originalGraph.getSortedEdges()) {
+                edgeCodes.put(
+                        e.getId(),
+                        originalGraph.getUnorientedEdgeCode(e.getFrom().getId(), e.getTo().getId())
+                );
+            }
+
+            for (Vertex orbitVertex : orbitVertices) {
+                sb.append(orbitVertex).append("\n");
+
+                List<Edge> vEdges = orbitVertex.getSortedEdges();
+
+                List<Edge> orbitEdges = new ArrayList<>();
+                Set<String> uniqueEdgeCodes = new HashSet<>();
+
+                for (Edge e : vEdges) {
+                    String code = edgeCodes.get(e.getId());
+                    if (uniqueEdgeCodes.add(code)) {
+                        orbitEdges.add(e);
+                    }
+                    sb.append("Edge ").append(e).append(" orbit ").append(orbitEdges.size()).append("\n");
+                }
+                sb.append("Number of different edge orbits: ").append(orbitEdges.size()).append("\n\n");
+
+                List<Edge[]> combinations = new ArrayList<>();
+
+                for (Edge edgeA : orbitEdges) {
+                    List<Edge> remaining = new ArrayList<>(vEdges);
+                    remaining.remove(edgeA);
+
+                    Edge edgeD = remaining.get(0);
+                    Edge edgeG = remaining.get(1);
+
+                    if (edgeCodes.get(edgeD.getId()).equals(edgeCodes.get(edgeG.getId()))) {
+                        combinations.add(new Edge[]{edgeA, edgeD, edgeG});
+                    } else {
+                        combinations.add(new Edge[]{edgeA, edgeD, edgeG});
+                        combinations.add(new Edge[]{edgeA, edgeG, edgeD});
+                    }
+                }
+
+                for (Edge[] comb : combinations) {
+
+                    Graph graph = originalGraph.getCopy();
+
+                    Map<Integer, Vertex> vertexMap = new HashMap<>();
+                    for (Vertex v : graph.getVertices()) {
+                        vertexMap.put(v.getId(), v);
+                    }
+
+                    Map<Integer, Edge> edgeMap = new HashMap<>();
+                    for (Edge e : graph.getEdges()) {
+                        edgeMap.put(e.getId(), e);
+                    }
+
+                    Vertex v = vertexMap.get(orbitVertex.getId());
+
+                    Edge edgeA = edgeMap.get(comb[0].getId());
+                    Edge edgeD = edgeMap.get(comb[1].getId());
+                    Edge edgeG = edgeMap.get(comb[2].getId());
+
+                    sb.append("Vertex: ").append(v.getId())
+                            .append(" Edge A: ").append(edgeA)
+                            .append(" Edge D: ").append(edgeD)
+                            .append(" Edge G: ").append(edgeG).append("\n");
+
+                    StrongEdgeColouring c = new StrongEdgeColouring();
+                    Palette6 palette = c.getPalette6(graph, v, edgeA, edgeD, edgeG);
+                    palettes.add(palette);
+                    paletteCount++;
+
+                    Set<Solution6> solutions = palette.getElements();
+                    //System.out.println("found " + solutions.size() + " solutions\n");
+                    sb.append("Found ").append(solutions.size())
+                            .append(" solutions for Palette ").append(paletteCount).append("\n");
+                }
+            }
+            System.out.println(sb);
+            //break;
+        }
+
+        Set<Palette6> uniquePalettes = new HashSet<>(palettes);
+
+        StringBuilder sb = new StringBuilder();
+        //System.out.println("Number of unique palettes " + uniquePalettes.size());
+        sb.append("Total number of different palettes: ").append(uniquePalettes.size()).append("\n\n");
+
+        sb.append("Palette comparison\n");
+        for (int i = 1; i <= palettes.size(); i++) {
+            for (int j = i + 1; j <= palettes.size(); j++) {
+                Palette6 p1 = palettes.get(i - 1);
+                Palette6 p2 = palettes.get(j - 1);
+
+                Set<Solution6> diff1 = new HashSet<>(p1.getElements());
+                diff1.removeAll(p2.getElements());
+
+                Set<Solution6> diff2 = new HashSet<>(p2.getElements());
+                diff2.removeAll(p1.getElements());
+
+                sb.append(i).append(" - ").append(j).append(": ").append(diff1.size()).append("\n");
+                sb.append(j).append(" - ").append(i).append(": ").append(diff2.size()).append("\n");
+
+                if (p1.equals(p2)) {
+                    //System.out.println(p1 + " is equal to " + p2);
+                    sb.append(p1).append("IS EQUAL TO\n").append(p2).append("\n\n");
+
+                } else if (p1.isSubsetOf(p2)) {
+                    //System.out.println(p1 + " is subset of " + p2);
+                    sb.append(p1).append("IS SUBSET OF\n").append(p2).append("\n\n");
+
+                } else if (p2.isSubsetOf(p1)) {
+                    //System.out.println(p2 + " is subset of " + p1);
+                    sb.append(p2).append("IS SUBSET OF\n").append(p1).append("\n\n");
+                }
+            }
+        }
+
+        System.out.println(sb);
     }
 }
