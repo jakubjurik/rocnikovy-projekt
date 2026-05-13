@@ -522,7 +522,7 @@ public class DemoTest {
         List<Palette6> palettes = new ArrayList<>();
         int paletteCount = 0;
 
-        for (int i = 4; i <= 6; i += 2) {
+        for (int i = 4; i <= 8; i += 2) {
             String fileName = "0" + i + "_3_3.asc";
             String filePath = "src/main/resources/genreg-modified/" + fileName;
 
@@ -553,7 +553,7 @@ public class DemoTest {
             }
 
             assertFalse(orbitVertices.isEmpty());
-            sb.append("Number of different vertex orbits: ").append(orbitVertices.size()).append("\n\n");
+            sb.append("Number of different vertex orbits: ").append(orbitVertices.size()).append("\n");
 
             Map<Integer, String> edgeCodes = new HashMap<>();
             for (Edge e : originalGraph.getSortedEdges()) {
@@ -564,7 +564,7 @@ public class DemoTest {
             }
 
             for (Vertex orbitVertex : orbitVertices) {
-                sb.append(orbitVertex).append("\n");
+                sb.append("\n").append(orbitVertex).append("\n");
 
                 List<Edge> vEdges = orbitVertex.getSortedEdges();
 
@@ -634,7 +634,6 @@ public class DemoTest {
                 }
             }
             System.out.println(sb);
-            //break;
         }
 
         Set<Palette6> uniquePalettes = new HashSet<>(palettes);
@@ -656,19 +655,19 @@ public class DemoTest {
                 diff2.removeAll(p1.getElements());
 
                 sb.append(i).append(" - ").append(j).append(": ").append(diff1.size()).append("\n");
-                sb.append(j).append(" - ").append(i).append(": ").append(diff2.size()).append("\n");
+                sb.append(j).append(" - ").append(i).append(": ").append(diff2.size()).append("\n\n");
 
                 if (p1.equals(p2)) {
                     //System.out.println(p1 + " is equal to " + p2);
-                    sb.append(p1).append("IS EQUAL TO\n").append(p2).append("\n\n");
+                    sb.append(p1).append("IS EQUAL TO\n").append(p2).append("\n\n\n");
 
                 } else if (p1.isSubsetOf(p2)) {
                     //System.out.println(p1 + " is subset of " + p2);
-                    sb.append(p1).append("IS SUBSET OF\n").append(p2).append("\n\n");
+                    sb.append(p1).append("IS SUBSET OF\n").append(p2).append("\n\n\n");
 
                 } else if (p2.isSubsetOf(p1)) {
                     //System.out.println(p2 + " is subset of " + p1);
-                    sb.append(p2).append("IS SUBSET OF\n").append(p1).append("\n\n");
+                    sb.append(p2).append("IS SUBSET OF\n").append(p1).append("\n\n\n");
                 }
             }
         }
