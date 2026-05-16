@@ -7,10 +7,10 @@ public class Palette6 {
 
     Set<Solution6> elements;
     Graph originalGraph;
-    Vertex vertex;
-    Edge edgeA;
-    Edge edgeD;
-    Edge edgeG;
+    public Vertex vertex;
+    public Edge edgeA;
+    public Edge edgeD;
+    public Edge edgeG;
 
     public Palette6(Set<Solution6> elements, Graph originalGraph, Vertex vertex, Edge edgeA, Edge edgeD, Edge edgeG) {
         this.elements = elements;
@@ -61,13 +61,13 @@ public class Palette6 {
     public String toString() {
         return "Palette for graph\n" + originalGraph + "where\n" +
                 "Vertex: " + vertex.getId() +
-                " Edge A: " + edgeA +
-                " Edge D: " + edgeD +
-                " Edge G: " + edgeG + "\n";
+                ", Edge A: " + edgeA +
+                ", Edge D: " + edgeD +
+                ", Edge G: " + edgeG + "\n";
     }
 
     public String toStringModified(int x) {
-        return "Palette" + x + " for graph\n" + originalGraph + "where\n" +
+        return "Palette " + x + " for graph\n" + originalGraph + "where\n" +
                 "Vertex: " + vertex.getId() +
                 " Edge A: " + edgeA +
                 " Edge D: " + edgeD +

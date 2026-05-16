@@ -11,6 +11,14 @@ public class Vertex {
         this.edges = new HashSet<>();
     }
 
+    public Vertex getCopy() {
+        Vertex copy = new Vertex(id);
+        for (Edge e : edges) {
+            copy.addEdge(e.getCopy());
+        }
+        return copy;
+    }
+
     public int getId() {
         return id;
     }

@@ -517,7 +517,6 @@ public class DemoTest {
 
     @Test
     public void comparePalettesOptimisedTest() throws FileNotFoundException {
-        //StringBuilder sb = new StringBuilder();
         List<Graph> graphs = new ArrayList<>();
         List<Palette6> palettes = new ArrayList<>();
         int paletteCount = 0;
@@ -535,9 +534,6 @@ public class DemoTest {
         }
 
         for (Graph originalGraph : graphs) {
-            StringBuilder sb = new StringBuilder();
-            //System.out.println(originalGraph);
-            sb.append("\n").append(originalGraph).append("\n");
 
             List<Vertex> vertices = originalGraph.getSortedVertices();
             Map<Integer, String> vertexCodes = originalGraph.getVertexCodes();
@@ -552,9 +548,6 @@ public class DemoTest {
                 }
             }
 
-            assertFalse(orbitVertices.isEmpty());
-            sb.append("Number of different vertex orbits: ").append(orbitVertices.size()).append("\n");
-
             Map<Integer, String> edgeCodes = new HashMap<>();
             for (Edge e : originalGraph.getSortedEdges()) {
                 edgeCodes.put(
@@ -564,8 +557,6 @@ public class DemoTest {
             }
 
             for (Vertex orbitVertex : orbitVertices) {
-                sb.append("\n").append(orbitVertex).append("\n");
-
                 List<Edge> vEdges = orbitVertex.getSortedEdges();
 
                 List<Edge> orbitEdges = new ArrayList<>();
@@ -576,9 +567,7 @@ public class DemoTest {
                     if (uniqueEdgeCodes.add(code)) {
                         orbitEdges.add(e);
                     }
-                    sb.append("Edge ").append(e).append(" orbit ").append(orbitEdges.size()).append("\n");
                 }
-                sb.append("Number of different edge orbits: ").append(orbitEdges.size()).append("\n\n");
 
                 List<Edge[]> combinations = new ArrayList<>();
 
@@ -617,61 +606,33 @@ public class DemoTest {
                     Edge edgeD = edgeMap.get(comb[1].getId());
                     Edge edgeG = edgeMap.get(comb[2].getId());
 
-                    sb.append("Vertex: ").append(v.getId())
-                            .append(" Edge A: ").append(edgeA)
-                            .append(" Edge D: ").append(edgeD)
-                            .append(" Edge G: ").append(edgeG).append("\n");
-
                     StrongEdgeColouring c = new StrongEdgeColouring();
                     Palette6 palette = c.getPalette6(graph, v, edgeA, edgeD, edgeG);
                     palettes.add(palette);
                     paletteCount++;
 
-                    Set<Solution6> solutions = palette.getElements();
-                    //System.out.println("found " + solutions.size() + " solutions\n");
-                    sb.append("Found ").append(solutions.size())
-                            .append(" solutions for Palette ").append(paletteCount).append("\n");
+                    System.out.println("P" + paletteCount + ":\n" + palette);
                 }
             }
-            System.out.println(sb);
         }
 
-        Set<Palette6> uniquePalettes = new HashSet<>(palettes);
+        System.out.println();
 
         StringBuilder sb = new StringBuilder();
-        //System.out.println("Number of unique palettes " + uniquePalettes.size());
-        sb.append("Total number of different palettes: ").append(uniquePalettes.size()).append("\n\n");
+        for (int i = 1; i <= paletteCount; i++) {
+            for (int j = 1; j <= paletteCount; j++) {
+                if (i == j) continue;
+                Palette6 pi = palettes.get(i - 1);
+                Palette6 pj = palettes.get(j - 1);
 
-        sb.append("Palette comparison\n");
-        for (int i = 1; i <= palettes.size(); i++) {
-            for (int j = i + 1; j <= palettes.size(); j++) {
-                Palette6 p1 = palettes.get(i - 1);
-                Palette6 p2 = palettes.get(j - 1);
-
-                Set<Solution6> diff1 = new HashSet<>(p1.getElements());
-                diff1.removeAll(p2.getElements());
-
-                Set<Solution6> diff2 = new HashSet<>(p2.getElements());
-                diff2.removeAll(p1.getElements());
-
-                sb.append(i).append(" - ").append(j).append(": ").append(diff1.size()).append("\n");
-                sb.append(j).append(" - ").append(i).append(": ").append(diff2.size()).append("\n\n");
-
-                if (p1.equals(p2)) {
-                    //System.out.println(p1 + " is equal to " + p2);
-                    sb.append(p1).append("IS EQUAL TO\n").append(p2).append("\n\n\n");
-
-                } else if (p1.isSubsetOf(p2)) {
-                    //System.out.println(p1 + " is subset of " + p2);
-                    sb.append(p1).append("IS SUBSET OF\n").append(p2).append("\n\n\n");
-
-                } else if (p2.isSubsetOf(p1)) {
-                    //System.out.println(p2 + " is subset of " + p1);
-                    sb.append(p2).append("IS SUBSET OF\n").append(p1).append("\n\n\n");
+                if (pi.equals(pj)) {
+                    sb.append("P").append(i).append(" is equal to P").append(j).append("\n\n");
+                } else if (pi.isSubsetOf(pj)) {
+                    sb.append("P").append(i).append(" is subset of P").append(j).append("\n\n");
                 }
             }
         }
 
-        System.out.println(sb);
+        System.out.print(sb);
     }
 }

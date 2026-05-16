@@ -16,6 +16,12 @@ public class Edge {
         this.to = to;
     }
 
+    public Edge getCopy() {
+        Vertex newFrom = new Vertex(from.getId());
+        Vertex newTo = new Vertex(to.getId());
+        return new Edge(id, newFrom, newTo);
+    }
+
     public void setFrom(Vertex from) {
         this.from = from;
     }
